@@ -11,7 +11,10 @@ const lexer = code => {
   for (let line of code.split('\n')) {
     if (line.includes('//')) {
       table.push({
-        value: line.replace('//', '').trim(),
+        value: line
+          .split('//')
+          .pop()
+          .trim(),
         text: 'Комментарий'
       })
 
