@@ -6,7 +6,7 @@ const tokensPath = path.join(__dirname, 'tokens.json')
 const lexer = code => {
   const { identifiers, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
 
-  const table = []
+  let table = []
 
   for (let line of code.split('\n')) {
     if (line.includes('//')) {
@@ -21,52 +21,126 @@ const lexer = code => {
       continue
     }
 
-    for (let identifier of identifiers) {
-      if (line.includes(identifier)) {
+    for (let construction of line.split(' ')) {
+      if (identifiers.includes(construction)) {
         table.push({
-          value: identifier,
+          value: construction,
           text: 'Идентификатор'
         })
 
-        line = line.replace(identifier, '').trim()
+        continue
       }
-    }
 
-    for (let delimiter of delimiters) {
-      if (line.includes(delimiter)) {
+      if (delimiters.includes(construction)) {
         table.push({
-          value: delimiter,
+          value: construction,
           text: 'Разделитель'
         })
 
-        line = line.replace(delimiter, '').trim()
+        continue
       }
-    }
 
-    line
-      .split('')
-      .filter(Boolean)
-      .filter(item => item !== ' ')
-      .forEach(item => {
-        if (identifiers.includes(item)) {
-          table.push({
-            value: item,
-            text: 'Идентификатор'
+      let isLiteral = true
+      for (let delimiter of delimiters) {
+        if (construction.includes(delimiter)) {
+          isLiteral = false
+          let unresolved = construction.split(delimiter).map(item => {
+            item = item.replace('\r', '')
+            return item
           })
-        } else if (delimiters.includes(item)) {
+          console.log(unresolved)
+
+          if (unresolved.length > 1) {
+            if (identifiers.includes(unresolved[0])) {
+              table.push({
+                value: unresolved[0],
+                text: 'Идентификатор'
+              })
+            } else if (delimiters.includes(unresolved[0])) {
+              table.push({
+                value: unresolved[0],
+                text: 'Разделитель'
+              })
+            } else {
+              table.push({
+                value: unresolved[0],
+                text: 'Литерал'
+              })
+            }
+
+            table.push({
+              value: delimiter,
+              text: 'Разделитель'
+            })
+
+            if (identifiers.includes(unresolved[1])) {
+              table.push({
+                value: unresolved[1],
+                text: 'Идентификатор'
+              })
+            } else if (delimiters.includes(unresolved[1])) {
+              table.push({
+                value: unresolved[1],
+                text: 'Разделитель'
+              })
+            } else {
+              table.push({
+                value: unresolved[1],
+                text: 'Литерал'
+              })
+            }
+
+            continue
+          }
+
+          if (unresolved.length === 1) {
+            if (identifiers.includes(unresolved[0])) {
+              table.push({
+                value: unresolved[0],
+                text: 'Идентификатор'
+              })
+            } else if (delimiters.includes(unresolved[0])) {
+              table.push({
+                value: unresolved[0],
+                text: 'Разделитель'
+              })
+            } else {
+              table.push({
+                value: unresolved[0],
+                text: 'Литерал'
+              })
+            }
+
+            table.push({
+              value: delimiter,
+              text: 'Разделитель'
+            })
+
+            continue
+          }
+
           table.push({
-            value: item,
+            value: delimiter,
             text: 'Разделитель'
           })
-        } else {
-          table.push({
-            value: item,
-            text: 'Литерал'
-          })
         }
-      })
+      }
+
+      if (isLiteral) {
+        table.push({
+          value: construction,
+          text: 'Литерал'
+        })
+      }
+    }
   }
 
+  table = table
+    .filter(item => item.value)
+    .map(item => {
+      item.value = item.value.replace('\r', '')
+      return item
+    })
   console.table(table)
 }
 
