@@ -42,88 +42,26 @@ const lexer = code => {
 
       let isLiteral = true
       for (let delimiter of delimiters) {
-        if (construction.includes(delimiter)) {
-          isLiteral = false
-          let unresolved = construction.split(delimiter).map(item => {
-            item = item.replace('\r', '')
-            return item
+        if (!construction.includes(delimiter)) continue
+
+        isLiteral = false
+
+        construction
+          .trim()
+          .split('')
+          .forEach(symbol => {
+            if (delimiters.includes(symbol)) {
+              table.push({
+                value: symbol,
+                text: 'Разделитель'
+              })
+            } else {
+              table.push({
+                value: symbol,
+                text: 'Литерал'
+              })
+            }
           })
-          console.log(unresolved)
-
-          if (unresolved.length > 1) {
-            if (identifiers.includes(unresolved[0])) {
-              table.push({
-                value: unresolved[0],
-                text: 'Идентификатор'
-              })
-            } else if (delimiters.includes(unresolved[0])) {
-              table.push({
-                value: unresolved[0],
-                text: 'Разделитель'
-              })
-            } else {
-              table.push({
-                value: unresolved[0],
-                text: 'Литерал'
-              })
-            }
-
-            table.push({
-              value: delimiter,
-              text: 'Разделитель'
-            })
-
-            if (identifiers.includes(unresolved[1])) {
-              table.push({
-                value: unresolved[1],
-                text: 'Идентификатор'
-              })
-            } else if (delimiters.includes(unresolved[1])) {
-              table.push({
-                value: unresolved[1],
-                text: 'Разделитель'
-              })
-            } else {
-              table.push({
-                value: unresolved[1],
-                text: 'Литерал'
-              })
-            }
-
-            continue
-          }
-
-          if (unresolved.length === 1) {
-            if (identifiers.includes(unresolved[0])) {
-              table.push({
-                value: unresolved[0],
-                text: 'Идентификатор'
-              })
-            } else if (delimiters.includes(unresolved[0])) {
-              table.push({
-                value: unresolved[0],
-                text: 'Разделитель'
-              })
-            } else {
-              table.push({
-                value: unresolved[0],
-                text: 'Литерал'
-              })
-            }
-
-            table.push({
-              value: delimiter,
-              text: 'Разделитель'
-            })
-
-            continue
-          }
-
-          table.push({
-            value: delimiter,
-            text: 'Разделитель'
-          })
-        }
       }
 
       if (isLiteral) {
