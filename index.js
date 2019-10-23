@@ -3,15 +3,10 @@ const path = require('path')
 const compiler = require('./compiler')
 
 const codePath = path.join(__dirname, 'code.txt')
+const tablePath = path.join(__dirname, 'table.json')
 
-const readFile = (path, callback) => {
-  fs.readFile(path, 'utf-8', (err, content) => {
-    if (err) throw new Error(err)
+const code = fs.readFileSync(codePath, 'utf-8')
 
-    callback(content)
-  })
-}
+const table = compiler.lexer(code)
 
-readFile(codePath, code => {
-  compiler.lexer(code)
-})
+fs.writeFileSync(tablePath, JSON.stringify(table))

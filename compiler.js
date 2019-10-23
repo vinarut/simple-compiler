@@ -73,13 +73,12 @@ const lexer = code => {
     }
   }
 
-  table = table
+  return table
     .filter(item => item.value)
     .map(item => {
       item.value = item.value.replace('\r', '')
       return item
     })
-  console.table(table)
 }
 
 module.exports = {
