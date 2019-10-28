@@ -1,3 +1,6 @@
 node_modules
 .idea
 table.json
+ident.json
+literals.json
+result.json
