@@ -1,6 +1,6 @@
 node_modules
 .idea
 table.json
-ident.json
+identifiers.json
 literals.json
-result.json
+indexes.json

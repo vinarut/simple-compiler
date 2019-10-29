@@ -3,34 +3,26 @@ const path = require('path')
 
 const tokensPath = path.join(__dirname, 'tokens.json')
 const tablePath = path.join(__dirname, 'table.json')
-const identPath = path.join(__dirname, 'ident.json')
+const identPath = path.join(__dirname, 'identifiers.json')
 const literalsPath = path.join(__dirname, 'literals.json')
-const resultPath = path.join(__dirname, 'result.json')
+const indexesPath = path.join(__dirname, 'indexes.json')
 
 const lexer = code => {
-  const { identifiers, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
+  const { terminals, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
 
   let table = []
 
   for (let line of code.split('\n')) {
     if (line.includes('//')) {
-      table.push({
-        value: line
-          .split('//')
-          .pop()
-          .trim(),
-        text: 'Комментарий'
-      })
-
       continue
     }
 
     for (let construction of line.split(' ')) {
-      if (identifiers.includes(construction)) {
+      if (terminals.includes(construction)) {
         table.push({
           value: construction,
           text: 'Идентификатор',
-          key: 'ident'
+          key: 'term'
         })
 
         continue
@@ -94,10 +86,10 @@ const lexer = code => {
   const codeLiterals = lits.filter(Number)
   const codeIdents = lits.filter(item => !codeLiterals.includes(item))
 
-  const result = table
+  const indexes = table
     .map(item => {
-      if (item.key === 'ident') {
-        return { table: 1, position: identifiers.findIndex(identifier => identifier === item.value) }
+      if (item.key === 'term') {
+        return { table: 1, position: terminals.findIndex(terminal => terminal === item.value) }
       }
 
       if (item.key === 'del') {
@@ -122,7 +114,7 @@ const lexer = code => {
   fs.writeFileSync(tablePath, JSON.stringify(table))
   fs.writeFileSync(identPath, JSON.stringify(codeIdents))
   fs.writeFileSync(literalsPath, JSON.stringify(codeLiterals))
-  fs.writeFileSync(resultPath, JSON.stringify(result))
+  fs.writeFileSync(indexesPath, JSON.stringify(indexes))
 }
 
 module.exports = {
