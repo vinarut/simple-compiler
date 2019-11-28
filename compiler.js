@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const {LITERAL, DELIMITER, IDENTIFIER} = require('./constants')
+const { LITERAL, DELIMITER, IDENTIFIER } = require('./constants')
 
 const tokensPath = path.join(__dirname, 'tokens.json')
 const tablePath = path.join(__dirname, 'table.json')
@@ -72,10 +72,10 @@ const lexer = code => {
 
   table = table
     .filter(item => item.value)
-    .map(item => {
-      item.value = item.value.replace('\r', '')
-      return item
-    })
+    .map(item => ({
+      ...item,
+      value: item.value.replace('\r', '')
+    }))
 
   const lits = [...new Set(table.filter(item => item.type === LITERAL).map(item => item.value))]
 
@@ -85,11 +85,11 @@ const lexer = code => {
   const indexes = table
     .map(item => {
       if (item.type === IDENTIFIER) {
-        return { table: 1, position: terminals.findIndex(terminal => terminal === item.value) }
+        return { tableId: 1, index: terminals.findIndex(terminal => terminal === item.value) }
       }
 
       if (item.type === DELIMITER) {
-        return { table: 2, position: delimiters.findIndex(delimiter => delimiter === item.value) }
+        return { tableId: 2, index: delimiters.findIndex(delimiter => delimiter === item.value) }
       }
 
       if (item.type === LITERAL) {
@@ -97,11 +97,11 @@ const lexer = code => {
         const identId = codeIdents.findIndex(idt => idt === item.value)
 
         if (literalId > -1) {
-          return { table: 3, position: literalId }
+          return { tableId: 3, index: literalId }
         }
 
         if (identId > -1) {
-          return { table: 4, position: identId }
+          return { tableId: 4, index: identId }
         }
       }
     })
