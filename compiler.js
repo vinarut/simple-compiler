@@ -3,36 +3,34 @@ const path = require('path')
 const { LITERAL, DELIMITER, IDENTIFIER } = require('./constants')
 
 const tokensPath = path.join(__dirname, 'tokens.json')
-const tablePath = path.join(__dirname, 'table.json')
+const outputPath = path.join(__dirname, 'output.json')
 const identPath = path.join(__dirname, 'identifiers.json')
 const literalsPath = path.join(__dirname, 'literals.json')
 const indexesPath = path.join(__dirname, 'indexes.json')
 
+const { terminals, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
+
+let output = []
+
+const isIdentifier = str => terminals.includes(str)
+const isDelimiter = str => delimiters.includes(str)
+const add = (value, key) => output.push({ value, key })
+
 const lexer = code => {
-  const { terminals, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
-
-  let table = []
-
   for (let line of code.split('\n')) {
     if (line.includes('//')) {
       continue
     }
 
     for (let construction of line.split(' ')) {
-      if (terminals.includes(construction)) {
-        table.push({
-          value: construction,
-          type: IDENTIFIER
-        })
+      if (isIdentifier(construction)) {
+        add(construction, IDENTIFIER)
 
         continue
       }
 
-      if (delimiters.includes(construction)) {
-        table.push({
-          value: construction,
-          type: DELIMITER
-        })
+      if (isDelimiter(construction)) {
+        add(construction, DELIMITER)
 
         continue
       }
@@ -47,42 +45,33 @@ const lexer = code => {
           .trim()
           .split('')
           .forEach(symbol => {
-            if (delimiters.includes(symbol)) {
-              table.push({
-                value: symbol,
-                type: DELIMITER
-              })
+            if (isDelimiter(symbol)) {
+              add(symbol, DELIMITER)
             } else {
-              table.push({
-                value: symbol,
-                type: LITERAL
-              })
+              add(symbol, LITERAL)
             }
           })
       }
 
       if (isLiteral) {
-        table.push({
-          value: construction,
-          type: LITERAL
-        })
+        add(construction, LITERAL)
       }
     }
   }
 
-  table = table
+  output = output
     .filter(item => item.value)
     .map(item => ({
       ...item,
       value: item.value.replace('\r', '')
     }))
 
-  const lits = [...new Set(table.filter(item => item.type === LITERAL).map(item => item.value))]
+  const lits = [...new Set(output.filter(item => item.type === LITERAL).map(item => item.value))]
 
   const codeLiterals = lits.filter(Number)
   const codeIdents = lits.filter(item => !codeLiterals.includes(item))
 
-  const indexes = table
+  const indexes = output
     .map(item => {
       if (item.type === IDENTIFIER) {
         return { tableId: 1, index: terminals.findIndex(terminal => terminal === item.value) }
@@ -107,7 +96,7 @@ const lexer = code => {
     })
     .filter(Boolean)
 
-  fs.writeFileSync(tablePath, JSON.stringify(table))
+  fs.writeFileSync(outputPath, JSON.stringify(output))
   fs.writeFileSync(identPath, JSON.stringify(codeIdents))
   fs.writeFileSync(literalsPath, JSON.stringify(codeLiterals))
   fs.writeFileSync(indexesPath, JSON.stringify(indexes))
