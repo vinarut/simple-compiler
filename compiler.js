@@ -12,8 +12,11 @@ const { terminals, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'
 
 let output = []
 
+const regular = /^[a-zA-Z_$]+\w*/
+
 const isIdentifier = str => terminals.includes(str)
 const isDelimiter = str => delimiters.includes(str)
+const isValidLiteral = literal => regular.test(literal)
 const add = (value, key) => output.push({ value, key })
 
 const lexer = code => {
@@ -23,6 +26,8 @@ const lexer = code => {
     }
 
     for (let construction of line.split(' ')) {
+      if (!construction) continue
+
       if (isIdentifier(construction)) {
         add(construction, IDENTIFIER)
 
@@ -54,7 +59,11 @@ const lexer = code => {
       }
 
       if (isLiteral) {
-        add(construction, LITERAL)
+        if (isValidLiteral(construction)) {
+          add(construction, LITERAL)
+        } else {
+          throw new Error(`Invalid literal ${construction}`)
+        }
       }
     }
   }
