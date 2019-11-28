@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const {LITERAL, DELIMITER, IDENTIFIER} = require('./constants')
 
 const tokensPath = path.join(__dirname, 'tokens.json')
 const tablePath = path.join(__dirname, 'table.json')
@@ -21,8 +22,7 @@ const lexer = code => {
       if (terminals.includes(construction)) {
         table.push({
           value: construction,
-          text: 'Идентификатор',
-          key: 'term'
+          type: IDENTIFIER
         })
 
         continue
@@ -31,8 +31,7 @@ const lexer = code => {
       if (delimiters.includes(construction)) {
         table.push({
           value: construction,
-          text: 'Разделитель',
-          key: 'del'
+          type: DELIMITER
         })
 
         continue
@@ -51,14 +50,12 @@ const lexer = code => {
             if (delimiters.includes(symbol)) {
               table.push({
                 value: symbol,
-                text: 'Разделитель',
-                key: 'del'
+                type: DELIMITER
               })
             } else {
               table.push({
                 value: symbol,
-                text: 'Литерал',
-                key: 'lit'
+                type: LITERAL
               })
             }
           })
@@ -67,8 +64,7 @@ const lexer = code => {
       if (isLiteral) {
         table.push({
           value: construction,
-          text: 'Литерал',
-          key: 'lit'
+          type: LITERAL
         })
       }
     }
@@ -81,22 +77,22 @@ const lexer = code => {
       return item
     })
 
-  const lits = [...new Set(table.filter(item => item.key === 'lit').map(item => item.value))]
+  const lits = [...new Set(table.filter(item => item.type === LITERAL).map(item => item.value))]
 
   const codeLiterals = lits.filter(Number)
   const codeIdents = lits.filter(item => !codeLiterals.includes(item))
 
   const indexes = table
     .map(item => {
-      if (item.key === 'term') {
+      if (item.type === IDENTIFIER) {
         return { table: 1, position: terminals.findIndex(terminal => terminal === item.value) }
       }
 
-      if (item.key === 'del') {
+      if (item.type === DELIMITER) {
         return { table: 2, position: delimiters.findIndex(delimiter => delimiter === item.value) }
       }
 
-      if (item.key === 'lit') {
+      if (item.type === LITERAL) {
         const literalId = codeLiterals.findIndex(lit => lit === item.value)
         const identId = codeIdents.findIndex(idt => idt === item.value)
 
