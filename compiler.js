@@ -13,6 +13,7 @@ const { terminals, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'
 let output = []
 
 const regular = /^[a-zA-Z_$]+\w*/
+const numberRegular = /^[\d]+$/
 
 const isIdentifier = str => terminals.includes(str)
 const isDelimiter = str => delimiters.includes(str)
@@ -52,10 +53,14 @@ const lexer = code => {
           .forEach(symbol => {
             if (isDelimiter(symbol)) {
               add(symbol, DELIMITER)
-            } else {
+            } else if (isValidLiteral(symbol)) {
               add(symbol, LITERAL)
+            } else {
+              throw new Error(`Invalid literal ${symbol}`)
             }
           })
+
+        break
       }
 
       if (isLiteral) {
