@@ -1,5 +1,9 @@
 module.exports = {
   LITERAL: 'literal',
   DELIMITER: 'delimiter',
-  IDENTIFIER: 'identifier'
+  IDENTIFIER: 'identifier',
+  IDENTIFIER_TABLE_ID: 1,
+  DELIMITER_TABLE_ID: 2,
+  LITERAL_VARIABLE_TABLE_ID: 3,
+  LITERAL_NUMBER_TABLE_ID: 4
 }

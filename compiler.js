@@ -1,6 +1,14 @@
 const fs = require('fs')
 const path = require('path')
-const { LITERAL, DELIMITER, IDENTIFIER } = require('./constants')
+const {
+  LITERAL,
+  DELIMITER,
+  IDENTIFIER,
+  IDENTIFIER_TABLE_ID,
+  DELIMITER_TABLE_ID,
+  LITERAL_NUMBER_TABLE_ID,
+  LITERAL_VARIABLE_TABLE_ID
+} = require('./constants')
 
 const tokensPath = path.join(__dirname, 'tokens.json')
 const outputPath = path.join(__dirname, 'output.json')
@@ -8,14 +16,14 @@ const identPath = path.join(__dirname, 'identifiers.json')
 const literalsPath = path.join(__dirname, 'literals.json')
 const indexesPath = path.join(__dirname, 'indexes.json')
 
-const { terminals, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
+const { keywords, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
 
 let output = []
 
 const regular = /^[a-zA-Z_$]+\w*/
 const numberRegular = /^[\d]+$/
 
-const isIdentifier = str => terminals.includes(str)
+const isKeyword = str => keywords.includes(str)
 const isDelimiter = str => delimiters.includes(str)
 const isValidLiteral = literal => regular.test(literal) || numberRegular.test(literal)
 const add = (value, key) => output.push({ value, key })
@@ -29,7 +37,7 @@ const lexer = code => {
     for (let construction of line.split(' ')) {
       if (!construction) continue
 
-      if (isIdentifier(construction)) {
+      if (isKeyword(construction)) {
         add(construction, IDENTIFIER)
 
         continue
@@ -80,31 +88,31 @@ const lexer = code => {
       value: item.value.replace('\r', '')
     }))
 
-  const lits = [...new Set(output.filter(item => item.type === LITERAL).map(item => item.value))]
+  const lits = [...new Set(output.filter(({ key }) => key === LITERAL).map(item => item.value))]
 
   const codeLiterals = lits.filter(Number)
   const codeIdents = lits.filter(item => !codeLiterals.includes(item))
 
   const indexes = output
-    .map(item => {
-      if (item.type === IDENTIFIER) {
-        return { tableId: 1, index: terminals.findIndex(terminal => terminal === item.value) }
+    .map(({ key, value }) => {
+      if (key === IDENTIFIER) {
+        return { id: IDENTIFIER_TABLE_ID, index: keywords.findIndex(terminal => terminal === value) }
       }
 
-      if (item.type === DELIMITER) {
-        return { tableId: 2, index: delimiters.findIndex(delimiter => delimiter === item.value) }
+      if (key === DELIMITER) {
+        return { id: DELIMITER_TABLE_ID, index: delimiters.findIndex(delimiter => delimiter === value) }
       }
 
-      if (item.type === LITERAL) {
-        const literalId = codeLiterals.findIndex(lit => lit === item.value)
-        const identId = codeIdents.findIndex(idt => idt === item.value)
+      if (key === LITERAL) {
+        const literalId = codeLiterals.findIndex(lit => lit === value)
+        const identId = codeIdents.findIndex(idt => idt === value)
 
         if (literalId > -1) {
-          return { tableId: 3, index: literalId }
+          return { id: LITERAL_VARIABLE_TABLE_ID, index: literalId }
         }
 
         if (identId > -1) {
-          return { tableId: 4, index: identId }
+          return { id: LITERAL_NUMBER_TABLE_ID, index: identId }
         }
       }
     })
