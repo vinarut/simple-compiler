@@ -17,7 +17,7 @@ const numberRegular = /^[\d]+$/
 
 const isIdentifier = str => terminals.includes(str)
 const isDelimiter = str => delimiters.includes(str)
-const isValidLiteral = literal => regular.test(literal)
+const isValidLiteral = literal => regular.test(literal) || numberRegular.test(literal)
 const add = (value, key) => output.push({ value, key })
 
 const lexer = code => {
