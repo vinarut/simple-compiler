@@ -30,8 +30,10 @@ const add = (value, key) => output.push({ value, key })
 
 const lexer = code => {
   for (let line of code.split('\n')) {
-    if (line.includes('//')) {
+    if (line.startsWith('//')) {
       continue
+    } else {
+      line = line.split('//').shift()
     }
 
     for (let construction of line.split(' ')) {
