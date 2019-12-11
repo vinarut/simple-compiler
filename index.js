@@ -1,9 +1,27 @@
-const fs = require('fs')
-const path = require('path')
 const compiler = require('./compiler')
 
-const codePath = path.join(__dirname, 'code.txt')
+const example1 = `
+  var a = 1;
+  var b;
+`
 
-const code = fs.readFileSync(codePath, 'utf-8')
+const example2 = `
+  let a = 1;
+  let c = 0;
 
-compiler.lexer(code)
+  if (a > 0) {
+    c = c + 1;
+  }
+`
+
+const example3 = `
+  var a=2;
+  let b = 3;
+  const c = a + b;
+  while (b > 1) {
+    a = c - b;
+    b = b - 1;
+  }
+`
+
+compiler.lexer(example1)
