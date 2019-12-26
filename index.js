@@ -1,8 +1,10 @@
 const compiler = require('./compiler')
 
 const example1 = `
-  var a = 1;
-  var b;
+  let a, b, c;
+  a = 10;
+  b = 3;
+  c = a + b;
 `
 
 const example2 = `
@@ -15,13 +17,13 @@ const example2 = `
 `
 
 const example3 = `
-  var a=2;
   let b = 3;
-  const c = a + b;
-  while (b > 1) {
+  let c = b + 5;
+  while(b > 1){
     a = c - b;
     b = b - 1;
   }
 `
 
 compiler.lexer(example1)
+compiler.parser()

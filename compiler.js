@@ -18,114 +18,101 @@ const indexesPath = path.join(__dirname, 'indexes.json')
 
 const { keywords, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
 
-let output = []
+const output = []
 
-const regular = /^[a-zA-Z_$]+\w*/
-const numberRegular = /^[\d]+$/
+const removeSpecificChars = code => {
+  const newCode = code
+    .replace('\n', '')
+    .replace('\r', '')
+    .replace('\t', '')
+  return code !== newCode ? removeSpecificChars(newCode) : code.trim()
+}
+
+const parseElement = element => {
+  if (!element) return
+
+  const separator = getSeparator(element)
+
+  if (separator) {
+    const [left, right] = element.split(separator)
+    parseElement(left)
+    add(separator, DELIMITER)
+    parseElement(right)
+
+    return
+  }
+
+  if (isKeyword(element)) {
+    add(element, IDENTIFIER)
+    return
+  }
+
+  if (isDelimiter(element)) {
+    add(element, DELIMITER)
+    return
+  }
+
+  if (isVariable(element) || isNumber(element)) {
+    add(element, LITERAL)
+  } else {
+    throw new Error(`Lexer finished with error. Unexpected token '${element}'`)
+  }
+}
+
+const getSeparator = str => delimiters.find(d => str.includes(d))
 
 const isKeyword = str => keywords.includes(str)
 const isDelimiter = str => delimiters.includes(str)
-const isValidLiteral = literal => regular.test(literal) || numberRegular.test(literal)
+const isVariable = literal => /^[a-zA-Z_$]+\w*/.test(literal)
+const isNumber = value => /^[\d]+$/.test(value) && isFinite(value)
 const add = (value, key) => output.push({ value, key })
 
-const lexer = code => {
-  for (let line of code.split('\n')) {
-    if (line.startsWith('//')) {
-      continue
-    } else {
-      line = line.split('//').shift()
+const write = () => {
+  const literals = [...new Set(output.filter(({ key }) => key === LITERAL).map(item => item.value))]
+
+  const numberLiterals = literals.filter(isNumber)
+  const variableLiterals = literals.filter(item => !numberLiterals.includes(item))
+
+  const indexes = output.map(({ key, value }) => {
+    if (key === IDENTIFIER) {
+      return { id: IDENTIFIER_TABLE_ID, index: keywords.findIndex(terminal => terminal === value) }
     }
 
-    for (let construction of line.split(' ')) {
-      if (!construction) continue
+    if (key === DELIMITER) {
+      return { id: DELIMITER_TABLE_ID, index: delimiters.findIndex(delimiter => delimiter === value) }
+    }
 
-      if (isKeyword(construction)) {
-        add(construction, IDENTIFIER)
+    if (key === LITERAL) {
+      const literalId = variableLiterals.findIndex(lit => lit === value)
+      const identId = numberLiterals.findIndex(lit => lit === value)
 
-        continue
+      if (literalId > -1) {
+        return { id: LITERAL_VARIABLE_TABLE_ID, index: literalId }
       }
 
-      if (isDelimiter(construction)) {
-        add(construction, DELIMITER)
-
-        continue
-      }
-
-      let isLiteral = true
-      for (let delimiter of delimiters) {
-        if (!construction.includes(delimiter)) continue
-
-        isLiteral = false
-
-        construction
-          .trim()
-          .split('')
-          .forEach(symbol => {
-            if (isDelimiter(symbol)) {
-              add(symbol, DELIMITER)
-            } else if (isValidLiteral(symbol)) {
-              add(symbol, LITERAL)
-            } else {
-              throw new Error(`Invalid literal ${symbol}`)
-            }
-          })
-
-        break
-      }
-
-      if (isLiteral) {
-        if (isValidLiteral(construction)) {
-          add(construction, LITERAL)
-        } else {
-          throw new Error(`Invalid literal ${construction}`)
-        }
+      if (identId > -1) {
+        return { id: LITERAL_NUMBER_TABLE_ID, index: identId }
       }
     }
-  }
-
-  output = output
-    .filter(item => item.value)
-    .map(item => ({
-      ...item,
-      value: item.value.replace('\r', '')
-    }))
-
-  const lits = [...new Set(output.filter(({ key }) => key === LITERAL).map(item => item.value))]
-
-  const codeLiterals = lits.filter(Number)
-  const codeIdents = lits.filter(item => !codeLiterals.includes(item))
-
-  const indexes = output
-    .map(({ key, value }) => {
-      if (key === IDENTIFIER) {
-        return { id: IDENTIFIER_TABLE_ID, index: keywords.findIndex(terminal => terminal === value) }
-      }
-
-      if (key === DELIMITER) {
-        return { id: DELIMITER_TABLE_ID, index: delimiters.findIndex(delimiter => delimiter === value) }
-      }
-
-      if (key === LITERAL) {
-        const literalId = codeLiterals.findIndex(lit => lit === value)
-        const identId = codeIdents.findIndex(idt => idt === value)
-
-        if (literalId > -1) {
-          return { id: LITERAL_VARIABLE_TABLE_ID, index: literalId }
-        }
-
-        if (identId > -1) {
-          return { id: LITERAL_NUMBER_TABLE_ID, index: identId }
-        }
-      }
-    })
-    .filter(Boolean)
+  })
 
   fs.writeFileSync(outputPath, JSON.stringify(output))
-  fs.writeFileSync(identPath, JSON.stringify(codeIdents))
-  fs.writeFileSync(literalsPath, JSON.stringify(codeLiterals))
+  fs.writeFileSync(identPath, JSON.stringify(variableLiterals))
+  fs.writeFileSync(literalsPath, JSON.stringify(numberLiterals))
   fs.writeFileSync(indexesPath, JSON.stringify(indexes))
 }
 
+const lexer = code => {
+  removeSpecificChars(code)
+    .split(' ')
+    .filter(Boolean)
+    .forEach(parseElement)
+  write()
+}
+
+const parser = () => {}
+
 module.exports = {
-  lexer
+  lexer,
+  parser
 }
