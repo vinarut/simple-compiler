@@ -9,16 +9,20 @@ const {
   LITERAL_NUMBER_TABLE_ID,
   LITERAL_VARIABLE_TABLE_ID
 } = require('./constants')
+const { Parser } = require('./Parser')
+const { isNumber, isVariable, comparison, getComparisonSignInStr } = require('./utils')
 
 const tokensPath = path.join(__dirname, 'tokens.json')
-const outputPath = path.join(__dirname, 'output.json')
-const identPath = path.join(__dirname, 'identifiers.json')
-const literalsPath = path.join(__dirname, 'literals.json')
-const indexesPath = path.join(__dirname, 'indexes.json')
+const outputPath = path.join(__dirname, 'output', 'output.json')
+const identPath = path.join(__dirname, 'output', 'identifiers.json')
+const literalsPath = path.join(__dirname, 'output', 'literals.json')
+const indexesPath = path.join(__dirname, 'output', 'indexes.json')
 
 const { keywords, delimiters } = JSON.parse(fs.readFileSync(tokensPath, 'utf-8'))
 
 const output = []
+
+const getProgramText = () => JSON.parse(fs.readFileSync(outputPath, 'utf-8')).map(({ value }) => value)
 
 const removeSpecificChars = code => {
   const newCode = code
@@ -31,7 +35,12 @@ const removeSpecificChars = code => {
 const parseElement = element => {
   if (!element) return
 
-  const separator = getSeparator(element)
+  if (comparison(element)) {
+    add(element, DELIMITER)
+    return
+  }
+
+  const separator = getComparisonSignInStr(element) || getSeparator(element)
 
   if (separator) {
     const [left, right] = element.split(separator)
@@ -63,8 +72,6 @@ const getSeparator = str => delimiters.find(d => str.includes(d))
 
 const isKeyword = str => keywords.includes(str)
 const isDelimiter = str => delimiters.includes(str)
-const isVariable = literal => /^[a-zA-Z_$]+\w*/.test(literal)
-const isNumber = value => /^[\d]+$/.test(value) && isFinite(value)
 const add = (value, key) => output.push({ value, key })
 
 const write = () => {
@@ -110,7 +117,9 @@ const lexer = code => {
   write()
 }
 
-const parser = () => {}
+const parser = () => {
+  new Parser(getProgramText())
+}
 
 module.exports = {
   lexer,
