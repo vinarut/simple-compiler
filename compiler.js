@@ -43,10 +43,10 @@ const parseElement = element => {
   const separator = getComparisonSignInStr(element) || getSeparator(element)
 
   if (separator) {
-    const [left, right] = element.split(separator)
+    const [left, ...right] = element.split(separator)
     parseElement(left)
     add(separator, DELIMITER)
-    parseElement(right)
+    parseElement(right.join(separator))
 
     return
   }
