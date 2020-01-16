@@ -23,6 +23,8 @@ class Parser {
     operand: 'Expression does not match operand.'
   }
   #current = {}
+  #outputArray = []
+  #operationStack = []
 
   constructor(program) {
     this.programText = Parser.generator(program)
@@ -41,6 +43,18 @@ class Parser {
     } else {
       this.#current = this.programText.next()
     }
+  }
+
+  addToOutputArray(value = '') {
+    this.#outputArray.push(value || this.#current.value)
+  }
+
+  addToOperationStack() {
+    this.#operationStack.push(this.#current.value)
+  }
+
+  popFromOperationStack() {
+    return this.#operationStack.pop()
   }
 
   isDone() {
@@ -90,7 +104,8 @@ class Parser {
   }
 
   operlist() {
-    if (this.isDone() || this.#current.value === '}') {// '}' - для проверки окончания тела
+    if (this.isDone() || this.#current.value === '}') {
+      // '}' - для проверки окончания тела
       return
     }
 
@@ -114,17 +129,74 @@ class Parser {
   }
 
   expression() {
+    this.#outputArray = []
+
     while (this.#current.value !== ';') {
-      // TODO Lab 6 expressions
+      if (this.isDone()) {
+        this.error(this.#messages.semi)
+      }
+
       if (keywords.includes(this.#current.value)) {
         this.error()
       }
 
+      this.reversePolish()
       this.next()
+    }
+
+    while (this.#operationStack.length) {
+      this.addToOutputArray(this.popFromOperationStack())
     }
 
     this.next()
     this.operlist()
+  }
+
+  reversePolish() {
+    if (this.#current.value === '(') {
+      this.addToOperationStack()
+      return
+    }
+
+    if (identifiers.includes(this.#current.value) || isNumber(this.#current.value)) {
+      this.addToOutputArray()
+      return
+    }
+
+    if (this.#current.value === ')') {
+      let lastOperation = this.popFromOperationStack()
+
+      while (lastOperation !== '(') {
+        this.addToOutputArray(lastOperation)
+        lastOperation = this.popFromOperationStack()
+      }
+
+      return
+    }
+
+    if (this.#operationStack.length) {
+      const lastOperation = this.#operationStack[this.#operationStack.length - 1]
+      const lastOperationPriority = this.getPriority(lastOperation)
+      const currentOperationPriority = this.getPriority()
+
+      if (lastOperationPriority >= currentOperationPriority) {
+        this.addToOutputArray(this.popFromOperationStack())
+      }
+    }
+
+    this.addToOperationStack()
+  }
+
+  getPriority(operation = '') {
+    const level = {
+      '*': 3,
+      '/': 3,
+      '+': 2,
+      '-': 2,
+      '(': 1
+    }
+
+    return level[operation || this.#current.value]
   }
 
   condition() {

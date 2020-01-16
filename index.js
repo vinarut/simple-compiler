@@ -17,8 +17,6 @@ const example2 = `
   } else {
     c = c - 1;
   }
-  
-  a = 1;
 `
 
 const example3 = `
@@ -31,5 +29,10 @@ const example3 = `
   }
 `
 
-compiler.lexer(example2)
+const expression = `
+  let a;
+  a = (6+10-4)/(1+1*2)+1;
+`
+
+compiler.lexer(expression)
 compiler.parser()
