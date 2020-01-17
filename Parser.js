@@ -1,6 +1,6 @@
 const fs = require('fs')
 const path = require('path')
-const { isNumber, comparison } = require('./utils')
+const { isVariable, isNumber, comparison } = require('./utils')
 
 const identPath = path.join(__dirname, 'output', 'identifiers.json')
 const tokensPath = path.join(__dirname, 'tokens.json')
@@ -25,6 +25,8 @@ class Parser {
   #current = {}
   #outputArray = []
   #operationStack = []
+  #tetrads = []
+  #assignmentVariable
 
   constructor(program) {
     this.programText = Parser.generator(program)
@@ -114,6 +116,7 @@ class Parser {
       this.condition()
       this.operlist()
     } else {
+      this.#assignmentVariable = this.#current.value
       this.next()
       this.assignment()
     }
@@ -147,6 +150,8 @@ class Parser {
     while (this.#operationStack.length) {
       this.addToOutputArray(this.popFromOperationStack())
     }
+
+    this.tetradsFormation()
 
     this.next()
     this.operlist()
@@ -197,6 +202,29 @@ class Parser {
     }
 
     return level[operation || this.#current.value]
+  }
+
+  tetradsFormation() {
+    const stack = []
+    const tetrads = []
+
+    for (const element of this.#outputArray) {
+      if (isVariable(element) || isNumber(element)) {
+        stack.push(element)
+        continue
+      }
+
+      const secondOperand = stack.pop()
+      const firstOperand = stack.pop()
+      const variable = `var${tetrads.length}`
+
+      tetrads.push([element, firstOperand, secondOperand, variable])
+      stack.push(variable)
+    }
+
+    tetrads.push(['=', stack.pop(), 0, this.#assignmentVariable])
+
+    this.#tetrads.push(tetrads)
   }
 
   condition() {
