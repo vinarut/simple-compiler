@@ -20,13 +20,17 @@ class Parser {
     comparison: 'Expected comparison symbol.',
     bodyStart: 'Expected symbol "{".',
     bodyEnd: 'Expected symbol "}"',
-    operand: 'Expression does not match operand.'
+    operand: 'Expression does not match operand.',
+    neverUsed: 'Variable has been declared, but never used:',
+    nonDeclared: 'Unknown variable.'
   }
   #current = {}
   #outputArray = []
   #operationStack = []
   #tetrads = []
   #assignmentVariable
+  #variables = []
+  #unusedVariables = []
 
   constructor(program) {
     this.programText = Parser.generator(program)
@@ -59,16 +63,25 @@ class Parser {
     return this.#operationStack.pop()
   }
 
+  removeVariable() {
+    this.#unusedVariables = this.#unusedVariables.filter(v => v !== this.#current.value)
+  }
+
+  unusedVariableChecking() {
+    if (this.#unusedVariables.length) {
+      this.error(this.#messages.neverUsed + ' ' + this.#unusedVariables.join(', '), false)
+    }
+  }
+
   isDone() {
     return this.#current.done
   }
 
-  compareWithCurrent(symbol) {
-    return symbol === this.#current.value
-  }
+  error(message = 'Unexpected symbol.', secondHalf = true) {
+    let error = message
+    error += secondHalf ? ` Current symbol is '${this.#current.value}'` : ''
 
-  error(message = 'Unexpected symbol.') {
-    throw new Error(message + ` Current symbol is '${this.#current.value}'`)
+    throw new Error(error)
   }
 
   program() {
@@ -81,12 +94,16 @@ class Parser {
     this.declist()
     this.next()
     this.operlist()
+    this.unusedVariableChecking()
   }
 
   declist() {
-    if (!identifiers.some(this.compareWithCurrent.bind(this))) {
+    if (!identifiers.includes(this.#current.value)) {
       this.error(this.#messages.identifier)
     }
+
+    this.#variables.push(this.#current.value)
+    this.#unusedVariables.push(this.#current.value)
 
     this.next()
     this.M()
@@ -107,7 +124,6 @@ class Parser {
 
   operlist() {
     if (this.isDone() || this.#current.value === '}') {
-      // '}' - для проверки окончания тела
       return
     }
 
@@ -117,6 +133,12 @@ class Parser {
       this.operlist()
     } else {
       this.#assignmentVariable = this.#current.value
+
+      if (isVariable(this.#current.value) && !this.isDeclared()) {
+        this.error(this.#messages.nonDeclared)
+      }
+
+      this.removeVariable()
       this.next()
       this.assignment()
     }
@@ -141,6 +163,14 @@ class Parser {
 
       if (keywords.includes(this.#current.value)) {
         this.error()
+      }
+
+      if (isVariable(this.#current.value)) {
+        if (!this.isDeclared()) {
+          this.error(this.#messages.nonDeclared)
+        }
+
+        this.removeVariable()
       }
 
       this.reversePolish()
@@ -264,11 +294,7 @@ class Parser {
   }
 
   conditionalExpression() {
-    if (!this.isOperand()) {
-      this.error(this.#messages.operand)
-    }
-
-    this.next()
+    this.checkOperand()
 
     if (!comparison(this.#current.value)) {
       this.error(this.#messages.comparison)
@@ -276,15 +302,25 @@ class Parser {
 
     this.next()
 
-    if (!this.isOperand()) {
+    this.checkOperand()
+  }
+
+  checkOperand() {
+    if (identifiers.includes(this.#current.value)) {
+      if (!this.isDeclared()) {
+        this.error(this.#messages.nonDeclared)
+      }
+
+      this.removeVariable()
+    } else if (!isNumber(this.#current.value)) {
       this.error(this.#messages.operand)
     }
 
     this.next()
   }
 
-  isOperand() {
-    return identifiers.some(this.compareWithCurrent.bind(this)) || isNumber(this.#current.value)
+  isDeclared() {
+    return this.#variables.includes(this.#current.value)
   }
 }
 
